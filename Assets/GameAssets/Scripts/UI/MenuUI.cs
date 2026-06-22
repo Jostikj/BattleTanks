@@ -9,8 +9,6 @@ public class MenuUI : MonoBehaviour
     public GameObject SteamLobby;
     public GameObject SteamJoinLobby;
 
-    public SteamLobbyManager SteamLobbyManager;
-
     private void Awake()
     {
         if (PlayMenu != null)
@@ -28,7 +26,7 @@ public class MenuUI : MonoBehaviour
         if (SteamJoinLobby != null)
             SteamJoinLobby.SetActive(false);
 
-        SteamLobbyManager.onLobbyEntered += OnEnteredLobby;
+        SteamLobbyManager.Instance.onLobbyEntered += OnEnteredLobby;
     }
 
     public void LocalPlayButton()
@@ -44,5 +42,12 @@ public class MenuUI : MonoBehaviour
     public void OnEnteredLobby()
     {
         SteamLobby.SetActive(true);
+        SteamLobbyCreator.SetActive(false);
+        SteamJoinLobby.SetActive(false);
+    }
+
+    public void OnExitedLobby()
+    {
+        SteamLobby.SetActive(false);
     }
 }

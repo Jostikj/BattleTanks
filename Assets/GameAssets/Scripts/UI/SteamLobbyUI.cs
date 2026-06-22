@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using Steamworks;
+using UnityEngine.UI;
 
 public class SteamLobbyUI : MonoBehaviour
 {
@@ -13,13 +14,16 @@ public class SteamLobbyUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI ErrorText;
 
     [Header("LobbyUI")]
-    [SerializeField] private TextMeshProUGUI _lobbyName;
-    [SerializeField] private TextMeshProUGUI _playersCount;
-    [SerializeField] private TMP_InputField _lobbyID;
+    [SerializeField] private TextMeshProUGUI _lobbyNameText;
+    [SerializeField] private TextMeshProUGUI _playersCountText;
+    [SerializeField] private TMP_InputField _lobbyIDInputField;
     [SerializeField] private GameObject Content;
 
     [Header("CreateLobbyUI")]
-    [SerializeField] private TextMeshProUGUI _maxPlayersCount;
+    [SerializeField] private TextMeshProUGUI _maxPlayersCountText;
+    [SerializeField] private Slider _maxPlayersSlider;
+    [SerializeField] private Toggle _lobbyTypeToggle;
+    [SerializeField] private TMP_InputField _lobbyNameInputField;
 
     private void Awake()
     {
@@ -83,20 +87,21 @@ public class SteamLobbyUI : MonoBehaviour
 
     private void PlayersCountChanged()
     {
-        _playersCount.text = $"Игроков в лобби: {SteamLobbyData.Instance.PlayersCount}/{SteamLobbyData.Instance.MaxPlayersCount}";
+        _playersCountText.text = $"Игроков в лобби: {SteamLobbyData.Instance.PlayersCount}/{SteamLobbyData.Instance.MaxPlayersCount}";
     }
 
     private void LobbyEntered()
     {
-        _lobbyName.text = SteamLobbyData.Instance.LobbyName;
-        _lobbyID.text = SteamLobbyData.Instance.LobbyID.ToString();
+        _lobbyNameText.text = SteamLobbyData.Instance.LobbyName;
+        _lobbyIDInputField.text = SteamLobbyData.Instance.LobbyID.ToString();
+        _maxPlayersCountText.text = $"{SteamLobbyData.Instance.PlayersCount} / {SteamLobbyData.Instance.MaxPlayersCount}";
     }
 
     public void LobbyExited()
     {
-        _lobbyID.text = "";
-        _lobbyName.text = "";
-        _playersCount.text = "";
+        _lobbyIDInputField.text = "";
+        _lobbyNameText.text = "";
+        _playersCountText.text = "";
         DeleteAllPlayerPanels();
         SteamLobbyManager.Instance.OnExitLobby();
     }
@@ -113,25 +118,19 @@ public class SteamLobbyUI : MonoBehaviour
 
     public void CreateLobby()
     {
+        if (_lobbyTypeToggle.enabled)
+            SteamLobbyData.Instance.SetLobbyType(ELobbyType.k_ELobbyTypeFriendsOnly);
+        else SteamLobbyData.Instance.SetLobbyType(ELobbyType.k_ELobbyTypePublic);
+
+        SteamLobbyData.Instance.SetLobbyName(_lobbyNameInputField.text);
+
         SteamLobbyManager.Instance.CreateGameLobby();
     }
 
-    public void CreateLobbyName(string name)
+    public void CreateLobbyMaxPlayersCount()
     {
-        SteamLobbyData.Instance.SetLobbyName(name);
-    }
-
-    public void CreateLobbyMaxPlayersCount(float maxPlayersCount)
-    {
-        SteamLobbyData.Instance.SetMaxPlayersCount((int)maxPlayersCount);
-        _maxPlayersCount.text = maxPlayersCount.ToString();
-    }
-
-    public void CreateLobbyType(bool type)
-    {
-        if (type)
-            SteamLobbyData.Instance.SetLobbyType(ELobbyType.k_ELobbyTypeFriendsOnly);
-        else SteamLobbyData.Instance.SetLobbyType(ELobbyType.k_ELobbyTypePublic);
+        SteamLobbyData.Instance.SetMaxPlayersCount((int)_maxPlayersSlider.value);
+        _maxPlayersCountText.text = _maxPlayersSlider.value.ToString();
     }
 
     #endregion
