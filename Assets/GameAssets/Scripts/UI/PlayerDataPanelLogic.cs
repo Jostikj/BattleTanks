@@ -1,0 +1,49 @@
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class PlayerDataPanelLogic : MonoBehaviour
+{
+    [SerializeField] private RawImage _avatarImage;
+    [SerializeField] private TextMeshProUGUI _nameText;
+    [SerializeField] private GameObject _kickButton;
+    [SerializeField] private GameObject _hostCrown;
+    public PlayerSteamData PlayerData { get; private set; }
+
+    public void PlayerKick()
+    {
+
+    }
+
+    public void InitializePanel(PlayerSteamData player)
+    {
+        PlayerData = player;
+        _avatarImage.texture = player.Avatar;
+        _nameText.text = player.Name;
+
+        KickButtonVisible();
+        HostCrownVisible();
+    }
+
+    public void ResetPanel()
+    {
+        KickButtonVisible();
+        HostCrownVisible();
+    }
+
+    private void KickButtonVisible()
+    {
+        if (SteamLobbyData.Instance.HostID == SteamLobbyData.Instance.MySteamData.SteamID)
+            _kickButton.SetActive(true);
+        else _kickButton.SetActive(false);
+
+        if (PlayerData.SteamID == SteamLobbyData.Instance.HostID) _kickButton.SetActive(false);
+    }
+
+    private void HostCrownVisible()
+    {
+        if (PlayerData.SteamID == SteamLobbyData.Instance.HostID)
+            _hostCrown.SetActive(true);
+        else _hostCrown.SetActive(false);
+    }
+}

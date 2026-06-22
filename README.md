@@ -1,1 +1,1 @@
-# BattleTanks
+# Tanks game
