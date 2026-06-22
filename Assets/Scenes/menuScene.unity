@@ -1355,22 +1355,10 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1421707897}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
-        m_CallState: 2
-      - m_Target: {fileID: 1471994863}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
+      - m_Target: {fileID: 1001659559}
+        m_TargetAssemblyTypeName: SteamLobbyUI, Assembly-CSharp
+        m_MethodName: LobbyExited
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -1379,9 +1367,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 1001659559}
-        m_TargetAssemblyTypeName: SteamLobbyUI, Assembly-CSharp
-        m_MethodName: LobbyExited
+      - m_Target: {fileID: 1001659557}
+        m_TargetAssemblyTypeName: MenuUI, Assembly-CSharp
+        m_MethodName: OnExitedLobby
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1772,7 +1760,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &415805122
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2530,10 +2518,10 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 2126286682}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
+      - m_Target: {fileID: 1001659557}
+        m_TargetAssemblyTypeName: MenuUI, Assembly-CSharp
+        m_MethodName: OnEnteredLobby
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -2541,18 +2529,6 @@ MonoBehaviour:
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 1471994863}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
         m_CallState: 2
 --- !u!114 &532986144
 MonoBehaviour:
@@ -3502,19 +3478,7 @@ MonoBehaviour:
       m_Calls: []
   m_OnValueChanged:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1001659559}
-        m_TargetAssemblyTypeName: SteamLobbyUI, Assembly-CSharp
-        m_MethodName: CreateLobbyName
-        m_Mode: 5
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   m_OnTouchScreenKeyboardStatusChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -3638,7 +3602,7 @@ GameObject:
   - component: {fileID: 757300388}
   - component: {fileID: 757300387}
   m_Layer: 5
-  m_Name: LobbyNameField
+  m_Name: LobbyNameText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4341,7 +4305,7 @@ RectTransform:
   m_Father: {fileID: 750400}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0.000030517578, y: 0}
   m_SizeDelta: {x: 60.0961, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -4931,7 +4895,7 @@ GameObject:
   - component: {fileID: 1001659557}
   - component: {fileID: 1001659559}
   m_Layer: 0
-  m_Name: Menu
+  m_Name: MenuUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4954,7 +4918,6 @@ MonoBehaviour:
   SteamLobbyCreator: {fileID: 415805121}
   SteamLobby: {fileID: 1471994863}
   SteamJoinLobby: {fileID: 2126286682}
-  SteamLobbyManager: {fileID: 1179978638}
 --- !u!4 &1001659558
 Transform:
   m_ObjectHideFlags: 0
@@ -4985,11 +4948,14 @@ MonoBehaviour:
   PlayerPanelPrefab: {fileID: 2111837441513019026, guid: 19a46b0243eb21d40961f0f5fc7f22b4, type: 3}
   EnterLobbyCode: {fileID: 1574250435}
   ErrorText: {fileID: 786681002}
-  _lobbyName: {fileID: 757300387}
-  _playersCount: {fileID: 1037993755}
-  _lobbyID: {fileID: 1652943457}
+  _lobbyNameText: {fileID: 757300387}
+  _playersCountText: {fileID: 1037993755}
+  _lobbyIDInputField: {fileID: 1652943457}
   Content: {fileID: 619406152}
-  _maxPlayersCount: {fileID: 0}
+  _maxPlayersCountText: {fileID: 2120199822}
+  _maxPlayersSlider: {fileID: 1009356676}
+  _lobbyTypeToggle: {fileID: 1054785843}
+  _lobbyNameInputField: {fileID: 717889390}
 --- !u!1 &1009356674
 GameObject:
   m_ObjectHideFlags: 0
@@ -5084,12 +5050,12 @@ MonoBehaviour:
       - m_Target: {fileID: 1001659559}
         m_TargetAssemblyTypeName: SteamLobbyUI, Assembly-CSharp
         m_MethodName: CreateLobbyMaxPlayersCount
-        m_Mode: 4
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
-          m_FloatArgument: 0
+          m_FloatArgument: 2
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
@@ -5242,7 +5208,7 @@ GameObject:
   - component: {fileID: 1037993754}
   - component: {fileID: 1037993755}
   m_Layer: 5
-  m_Name: PlayersCount
+  m_Name: PlayersCountText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5259,7 +5225,8 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1309457316}
   m_Father: {fileID: 1471994864}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -5683,19 +5650,7 @@ MonoBehaviour:
   m_Group: {fileID: 0}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1001659559}
-        m_TargetAssemblyTypeName: SteamLobbyUI, Assembly-CSharp
-        m_MethodName: CreateLobbyType
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   m_IsOn: 1
 --- !u!1 &1089259553
 GameObject:
@@ -6443,7 +6398,7 @@ GameObject:
   - component: {fileID: 1309457318}
   - component: {fileID: 1309457317}
   m_Layer: 5
-  m_Name: PlayersCountText
+  m_Name: PlayerCount
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6456,16 +6411,16 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1309457315}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1471994864}
+  m_Father: {fileID: 1037993753}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 398.758, y: 475.87}
+  m_AnchoredPosition: {x: -265.7176, y: 0}
   m_SizeDelta: {x: 252.1662, y: 80.839}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1309457317
@@ -6919,7 +6874,7 @@ RectTransform:
   m_Father: {fileID: 1349414448}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -7535,7 +7490,6 @@ RectTransform:
   - {fileID: 757300386}
   - {fileID: 1242868165}
   - {fileID: 408520516}
-  - {fileID: 1309457316}
   - {fileID: 1037993753}
   m_Father: {fileID: 1731992724}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -8139,10 +8093,10 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 415805121}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
+      - m_Target: {fileID: 1001659557}
+        m_TargetAssemblyTypeName: MenuUI, Assembly-CSharp
+        m_MethodName: OnEnteredLobby
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -8150,18 +8104,6 @@ MonoBehaviour:
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 1471994863}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
         m_CallState: 2
 --- !u!114 &1576039717
 MonoBehaviour:
