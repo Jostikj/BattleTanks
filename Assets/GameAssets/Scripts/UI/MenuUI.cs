@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -9,7 +10,9 @@ public class MenuUI : MonoBehaviour
     public GameObject SteamLobby;
     public GameObject SteamJoinLobby;
 
-    private void Awake()
+    [SerializeField] private TextMeshProUGUI _versionText;
+
+    private void Start()
     {
         if (PlayMenu != null)
             PlayMenu.SetActive(false);
@@ -27,6 +30,8 @@ public class MenuUI : MonoBehaviour
             SteamJoinLobby.SetActive(false);
 
         SteamLobbyManager.Instance.onLobbyEntered += OnEnteredLobby;
+
+        _versionText.text = Application.version;
     }
 
     public void LocalPlayButton()

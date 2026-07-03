@@ -25,19 +25,20 @@ public class SteamLobbyUI : MonoBehaviour
     [SerializeField] private Toggle _lobbyTypeToggle;
     [SerializeField] private TMP_InputField _lobbyNameInputField;
 
-    private void Awake()
+    private void Start()
     {
         SteamLobbyData.Instance.OnPlayerConnected += PlayerConnected;
         SteamLobbyData.Instance.OnPlayerDisconnected += PlayerDiconnected;
         SteamLobbyData.Instance.OnHostIDChanged += HostIDChanged;
         SteamLobbyData.Instance.OnPlayersCountChanged += PlayersCountChanged;
         SteamLobbyManager.Instance.onLobbyEntered += LobbyEntered;
+        SteamLobbyManager.Instance.OnLobbyExited += OnLobbyExited;
     }
 
 
     #region LobbyUI
 
-    private void InstantiatePlayersPanels(PlayerSteamData player)
+    private void InstantiatePlayerPanel(PlayerSteamData player)
     {
         var panelLogic = Instantiate(PlayerPanelPrefab).GetComponent<PlayerDataPanelLogic>();
         panelLogic.transform.SetParent(Content.transform, false);
@@ -49,10 +50,10 @@ public class SteamLobbyUI : MonoBehaviour
     {
         for (int i = 0; i < _allPlayerPanels.Count; i++)
         {
-            if (_allPlayerPanels[i].PlayerData == player)
+            if (_allPlayerPanels[i].PlayerData.SteamID == player.SteamID)
             {
                 Destroy(_allPlayerPanels[i].gameObject);
-                _allPlayerPanels.Remove(_allPlayerPanels[i]);
+                _allPlayerPanels.RemoveAt(i);
                 break;
             }
         }
@@ -60,16 +61,16 @@ public class SteamLobbyUI : MonoBehaviour
 
     private void DeleteAllPlayerPanels()
     {
-        for (int i = 0; i < _allPlayerPanels.Count; i++)
+        foreach (var panel in _allPlayerPanels)
         {
-            Destroy(_allPlayerPanels[i].gameObject);
-            _allPlayerPanels.Remove(_allPlayerPanels[i]);
+            Destroy(panel.gameObject);
         }
+        _allPlayerPanels.Clear();
     }
 
     private void PlayerConnected(PlayerSteamData player)
     {
-        InstantiatePlayersPanels(player);
+        InstantiatePlayerPanel(player);
     }
 
     private void PlayerDiconnected(PlayerSteamData player)
@@ -87,23 +88,22 @@ public class SteamLobbyUI : MonoBehaviour
 
     private void PlayersCountChanged()
     {
-        _playersCountText.text = $"Игроков в лобби: {SteamLobbyData.Instance.PlayersCount}/{SteamLobbyData.Instance.MaxPlayersCount}";
+        _playersCountText.text = $"{SteamLobbyData.Instance.PlayersCount} / {SteamLobbyData.Instance.MaxPlayersCount}";
     }
 
     private void LobbyEntered()
     {
         _lobbyNameText.text = SteamLobbyData.Instance.LobbyName;
         _lobbyIDInputField.text = SteamLobbyData.Instance.LobbyID.ToString();
-        _maxPlayersCountText.text = $"{SteamLobbyData.Instance.PlayersCount} / {SteamLobbyData.Instance.MaxPlayersCount}";
+        _playersCountText.text = $"{SteamLobbyData.Instance.PlayersCount} / {SteamLobbyData.Instance.MaxPlayersCount}";
     }
 
-    public void LobbyExited()
+    private void OnLobbyExited()
     {
         _lobbyIDInputField.text = "";
         _lobbyNameText.text = "";
         _playersCountText.text = "";
         DeleteAllPlayerPanels();
-        SteamLobbyManager.Instance.OnExitLobby();
     }
 
     public void GameStarted()
@@ -118,10 +118,11 @@ public class SteamLobbyUI : MonoBehaviour
 
     public void CreateLobby()
     {
-        if (_lobbyTypeToggle.enabled)
+        if (_lobbyTypeToggle.enabled)  //починить
             SteamLobbyData.Instance.SetLobbyType(ELobbyType.k_ELobbyTypeFriendsOnly);
         else SteamLobbyData.Instance.SetLobbyType(ELobbyType.k_ELobbyTypePublic);
 
+        SteamLobbyData.Instance.SetMaxPlayersCount((int)_maxPlayersSlider.value);
         SteamLobbyData.Instance.SetLobbyName(_lobbyNameInputField.text);
 
         SteamLobbyManager.Instance.CreateGameLobby();
@@ -142,7 +143,7 @@ public class SteamLobbyUI : MonoBehaviour
     {
         if (!SteamLobbyManager.Instance.JoinLobbyToID(EnterLobbyCode.text))
         {
-            ErrorText.text = "Введён неверный формат кода лобби";
+            ErrorText.text = "Неудалось подключиться к лобби, введённый код лобби не является действительным";
         }
     }
 

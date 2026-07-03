@@ -12,7 +12,8 @@ public class PlayerDataPanelLogic : MonoBehaviour
 
     public void PlayerKick()
     {
-
+        if (SteamLobbyData.Instance.HostID != SteamLobbyData.Instance.MySteamData.SteamID) return;
+        SteamLobbyManager.Instance.KickPlayer(PlayerData.SteamID);
     }
 
     public void InitializePanel(PlayerSteamData player)

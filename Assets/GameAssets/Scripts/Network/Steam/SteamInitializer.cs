@@ -34,7 +34,7 @@ public class SteamInitializer : MonoBehaviour
         if (SteamAPI.IsSteamRunning())
         {
             SteamAPI.Shutdown();
-            Debug.Log("SimpleSteamInit: Steamworks завершил работу.");
+            Debug.Log("Steamworks завершил работу.");
         }
     }
 }

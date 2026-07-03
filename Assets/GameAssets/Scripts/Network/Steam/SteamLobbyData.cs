@@ -13,8 +13,8 @@ public class SteamLobbyData : MonoBehaviour
     public string LobbyName { get; private set; }
     public CSteamID LobbyID { get; private set; }
     public CSteamID HostID { get; private set; }
-    public PlayerSteamData MySteamData { get; private set; }
     public ELobbyType LobbyType { get; private set; }
+    public PlayerSteamData MySteamData { get; private set; }
 
     [Header("Actions")]
     public Action<PlayerSteamData> OnPlayerConnected;
@@ -34,24 +34,42 @@ public class SteamLobbyData : MonoBehaviour
         LobbyType = ELobbyType.k_ELobbyTypeFriendsOnly;
     }
 
+
+    public void DeleteLobbyData()
+    {
+        _players = new Dictionary<CSteamID, PlayerSteamData>();
+        SetPlayersCount(0);
+        SetMaxPlayersCount(0);
+        SetLobbyID(CSteamID.Nil);
+        SetHostID(CSteamID.Nil);
+        SetLobbyType(ELobbyType.k_ELobbyTypePublic);
+        SetLobbyName("");
+    }
+
     public void AddPlayer(CSteamID steamID)
     {
+        if (_players.ContainsKey(steamID))
+        {
+            Debug.Log($"Не удалось добавить игрока в коллекцию _players, т.к. игрок {steamID} уже добавлен в коллекцию");
+            return;
+        }
+
+        if (steamID == CSteamID.Nil || steamID.m_SteamID == 0)
+        {
+            Debug.Log("Не удалось добавить игрока в коллекцию _players, т.к. steamID игрока недействителен");
+            return;
+        }
+
         _players.Add(steamID, new PlayerSteamData(steamID));
-        PlayersCount++;
         OnPlayerConnected?.Invoke(GetPlayer(steamID));
+        Debug.Log($"Игрок {steamID} добавлен в коллекцию _players");
     }
 
     public void RemovePlayer(CSteamID steamID)
     {
+        if (!_players.TryGetValue(steamID, out var player)) return;
+        OnPlayerDisconnected?.Invoke(player);
         _players.Remove(steamID);
-        PlayersCount--;
-        OnPlayerDisconnected?.Invoke(GetPlayer(steamID));
-    }
-
-    public void RemoveAllPlayers()
-    {
-        _players.Clear();
-        PlayersCount = 0;
     }
 
     public PlayerSteamData GetPlayer(CSteamID steamID)
