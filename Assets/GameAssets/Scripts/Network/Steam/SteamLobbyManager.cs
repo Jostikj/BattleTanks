@@ -2,12 +2,12 @@ using Edgegap;
 using Mirror;
 using Steamworks;
 using System;
+using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class SteamLobbyManager : MonoBehaviour
 {
-    #region Переписал
     [SerializeField] private string gameSceneName = "Map1";
 
     [Header("Singleton")]
@@ -49,10 +49,9 @@ public class SteamLobbyManager : MonoBehaviour
         lobbyChatMsgCallback = Callback<LobbyChatMsg_t>.Create(OnLobbyChatMsg);
     }
 
-    public void CreateGameLobby()
+    public void CreateLobbyRequest()
     {
         if (_isLobbyCreating) return;
-
         SteamMatchmaking.CreateLobby(SteamLobbyData.Instance.LobbyType, SteamLobbyData.Instance.MaxPlayersCount);
         _isLobbyCreating = true;
         Debug.Log("Запрос на создание лобби отправлен в Steam...");
@@ -73,6 +72,7 @@ public class SteamLobbyManager : MonoBehaviour
 
         SteamMatchmaking.SetLobbyData(SteamLobbyData.Instance.LobbyID, "lobbyName", SteamLobbyData.Instance.LobbyName);
         SteamMatchmaking.SetLobbyData(SteamLobbyData.Instance.LobbyID, "lobbyMaxPlayersCount", SteamLobbyData.Instance.MaxPlayersCount.ToString());
+        SteamMatchmaking.SetLobbyData(SteamLobbyData.Instance.LobbyID, "readyPlayers", "0");
     }
 
     private void OnJoinRequest(GameLobbyJoinRequested_t callback)
@@ -83,6 +83,7 @@ public class SteamLobbyManager : MonoBehaviour
 
     private void OnLobbyEntered(LobbyEnter_t callback)
     {
+        Debug.Log($"Успешно подключён к лобби: {SteamLobbyData.Instance.LobbyID}");
         SteamLobbyData.Instance.SetLobbyID(new CSteamID(callback.m_ulSteamIDLobby));
         SteamLobbyData.Instance.SetHostID(new CSteamID((ulong)SteamMatchmaking.GetLobbyOwner(SteamLobbyData.Instance.LobbyID)));
 
@@ -91,17 +92,21 @@ public class SteamLobbyManager : MonoBehaviour
 
     private void OnLobbyDataUpdate(LobbyDataUpdate_t callback)
     {
-        if (callback.m_ulSteamIDLobby != SteamLobbyData.Instance.LobbyID.m_SteamID) return;
+        if (callback.m_ulSteamIDLobby != SteamLobbyData.Instance.LobbyID.m_SteamID)
+            return;
 
         if (!NetworkServer.active && !_isGameStarting)
             ClientGameStartedCheck();
 
         if (!_isLobbyDataLoaded)
             LobbyDataLoad();
+
+        UpdateReadyState();
     }
 
     private void LobbyDataLoad()
     {
+        Debug.Log("Загрузка данных лобби");
         _isLobbyDataLoaded = true;
         SteamLobbyData.Instance.SetMaxPlayersCount(Convert.ToInt32(SteamMatchmaking.GetLobbyData(SteamLobbyData.Instance.LobbyID, "lobbyMaxPlayersCount")));
         SteamLobbyData.Instance.SetLobbyName(SteamMatchmaking.GetLobbyData(SteamLobbyData.Instance.LobbyID, "lobbyName"));
@@ -111,10 +116,37 @@ public class SteamLobbyManager : MonoBehaviour
         {
             SteamLobbyData.Instance.AddPlayer(SteamMatchmaking.GetLobbyMemberByIndex(SteamLobbyData.Instance.LobbyID, i));
         }
-
+        UpdateReadyState();
         NetworkManager.singleton.networkAddress = SteamLobbyData.Instance.HostID.ToString();
 
         onLobbyEntered?.Invoke();
+    }
+
+    private void UpdateReadyState()
+    {
+        int readyPlayers = 0;
+
+        for (int i = 0; i < SteamLobbyData.Instance.PlayersCount; i++)
+        {
+            CSteamID player = SteamMatchmaking.GetLobbyMemberByIndex(
+                SteamLobbyData.Instance.LobbyID,
+                i);
+
+            bool ready =
+                SteamMatchmaking.GetLobbyMemberData(
+                    SteamLobbyData.Instance.LobbyID,
+                    player,
+                    "ready") == "1";
+
+            SteamLobbyData.Instance.SetPlayerReady(player, ready);
+
+            SteamLobbyUI.ReadyPanelUpdate(player, ready);
+
+            if (ready)
+                readyPlayers++;
+        }
+
+        SteamLobbyData.Instance.SetReadyPlayersCount(readyPlayers);
     }
 
     public void InviteFriends()
@@ -124,7 +156,7 @@ public class SteamLobbyManager : MonoBehaviour
             Debug.LogWarning("Нет активного лобби для приглашения");
             return;
         }
-
+        Debug.Log("Приглашение друзей");
         SteamFriends.ActivateGameOverlayInviteDialog(SteamLobbyData.Instance.LobbyID);
     }
 
@@ -132,6 +164,7 @@ public class SteamLobbyManager : MonoBehaviour
     {
         if (SteamMatchmaking.GetLobbyData(SteamLobbyData.Instance.LobbyID, "game_started") == "1")
         {
+            Debug.Log("Игра запущена");
             _isGameStarting = true;
             SceneManager.LoadScene(gameSceneName);
             NetworkManager.singleton.StartClient();
@@ -140,19 +173,11 @@ public class SteamLobbyManager : MonoBehaviour
 
     private void OnLobbyChatUpdate(LobbyChatUpdate_t callback)
     {
-        Debug.Log("LobbyChatUpdate");
         ConnectedAndDisconnectedPlayer(callback);
     }
 
     private void ConnectedAndDisconnectedPlayer(LobbyChatUpdate_t callback)
     {
-        Debug.Log(
-            $"ChatUpdate: " +
-            $"Changed={callback.m_ulSteamIDUserChanged}, " +
-            $"MakingChange={callback.m_ulSteamIDMakingChange}, " +
-            $"State={(EChatMemberStateChange)callback.m_rgfChatMemberStateChange}"
-            );
-
         var state = (EChatMemberStateChange)callback.m_rgfChatMemberStateChange;
         CSteamID playerSteamID = new CSteamID(callback.m_ulSteamIDUserChanged);
 
@@ -184,6 +209,7 @@ public class SteamLobbyManager : MonoBehaviour
     {
         if (SteamLobbyData.Instance.MySteamData.SteamID != SteamLobbyData.Instance.HostID) return;
         if (_isGameStarting) return;
+        Debug.Log("Игра запущена");
         _isGameStarting = true;
 
         SteamMatchmaking.SetLobbyData(SteamLobbyData.Instance.LobbyID, "game_started", "1");
@@ -196,6 +222,8 @@ public class SteamLobbyManager : MonoBehaviour
     private void OnLobbyChatMsg(LobbyChatMsg_t callback)
     {
         if (callback.m_ulSteamIDLobby != SteamLobbyData.Instance.LobbyID.m_SteamID) return;
+        Debug.Log("Обновление сообщений в чате лобби");
+
         var senderID = callback.m_ulSteamIDUser;
         byte[] data = new byte[1024];
         int bytesRead = SteamMatchmaking.GetLobbyChatEntry(
@@ -209,9 +237,9 @@ public class SteamLobbyManager : MonoBehaviour
 
         if (bytesRead <= 0) return;
 
-        string message = System.Text.Encoding.UTF8.GetString(data, 0, bytesRead);
+        string message = Encoding.UTF8.GetString(data, 0, bytesRead);
 
-        if (message.StartsWith("KiCK_") && senderID == SteamLobbyData.Instance.HostID.m_SteamID)
+        if (message.StartsWith("KICK_") && senderID == SteamLobbyData.Instance.HostID.m_SteamID)
             KickUpdate(message);
     }
 
@@ -223,16 +251,17 @@ public class SteamLobbyManager : MonoBehaviour
             CSteamID targetID = new CSteamID(kickedID);
             if (targetID == SteamUser.GetSteamID())
             {
-                Debug.Log("Вас кикнули из лобби!");
+                Debug.Log($"Вас кикнули из лобби: {SteamLobbyData.Instance.LobbyID}");
                 OnExitLobby();
             }
         }
     }
 
-    public void KickPlayer(CSteamID steamID)
+    public void KickPlayer(CSteamID playerSteamID)
     {
-        byte[] data = System.Text.Encoding.UTF8.GetBytes($"KICK_{steamID}");
+        byte[] data = Encoding.UTF8.GetBytes($"KICK_{playerSteamID}");
         SteamMatchmaking.SendLobbyChatMsg(SteamLobbyData.Instance.LobbyID, data, data.Length);
+        Debug.Log($"Кик игрока: {playerSteamID}");
     }
 
     public void OnExitLobby()
@@ -240,7 +269,8 @@ public class SteamLobbyManager : MonoBehaviour
         SteamMatchmaking.LeaveLobby(SteamLobbyData.Instance.LobbyID);
         SteamLobbyData.Instance.DeleteLobbyData();
         _isLobbyDataLoaded = false;
-        Debug.Log("Вы вышли из лобби...");
+
+        Debug.Log($"Вы вышли из лобби: {SteamLobbyData.Instance.LobbyID}");
         OnLobbyExited?.Invoke();
     }
 
@@ -250,7 +280,7 @@ public class SteamLobbyManager : MonoBehaviour
         {
             CSteamID lobbyID = new CSteamID(lobbyIDNumber);
             SteamMatchmaking.JoinLobby(lobbyID);
-            Debug.Log($"Пытаемся присоединиться к лобби с ID: {lobbyID}");
+            Debug.Log($"Пытаемся присоединиться к лобби: {lobbyID}");
             return true;
         }
         else
@@ -259,5 +289,20 @@ public class SteamLobbyManager : MonoBehaviour
             return false;
         }
     }
-    #endregion
+
+    public void Ready()
+    {
+        SteamMatchmaking.SetLobbyMemberData(
+            SteamLobbyData.Instance.LobbyID,
+            "ready",
+            "1");
+    }
+
+    public void Unready()
+    {
+        SteamMatchmaking.SetLobbyMemberData(
+            SteamLobbyData.Instance.LobbyID,
+            "ready",
+            "0");
+    }
 }

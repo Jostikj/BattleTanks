@@ -7,6 +7,8 @@ public class SteamLobbyData : MonoBehaviour
 {
     private Dictionary<CSteamID, PlayerSteamData> _players = new Dictionary<CSteamID, PlayerSteamData>();
 
+    private Dictionary<CSteamID, bool> _readyPlayers = new Dictionary<CSteamID, bool>();
+
     public static SteamLobbyData Instance { get; private set; }
     public int PlayersCount { get; private set; }
     public int MaxPlayersCount { get; private set; }
@@ -15,6 +17,7 @@ public class SteamLobbyData : MonoBehaviour
     public CSteamID HostID { get; private set; }
     public ELobbyType LobbyType { get; private set; }
     public PlayerSteamData MySteamData { get; private set; }
+    public int ReadyPlayersCount {  get; private set; }
 
     [Header("Actions")]
     public Action<PlayerSteamData> OnPlayerConnected;
@@ -22,6 +25,7 @@ public class SteamLobbyData : MonoBehaviour
 
     public Action OnPlayersCountChanged;
     public Action OnHostIDChanged;
+    public Action OnReadyPlayersCountChanged;
 
     private void Awake()
     {
@@ -37,7 +41,10 @@ public class SteamLobbyData : MonoBehaviour
 
     public void DeleteLobbyData()
     {
-        _players = new Dictionary<CSteamID, PlayerSteamData>();
+        _players.Clear();
+        _readyPlayers.Clear();
+        SetReadyPlayersCount(0);
+
         SetPlayersCount(0);
         SetMaxPlayersCount(0);
         SetLobbyID(CSteamID.Nil);
@@ -117,5 +124,22 @@ public class SteamLobbyData : MonoBehaviour
     public void InitializeMySteamData(PlayerSteamData player)
     {
         MySteamData = player;
+    }
+
+    public void SetReadyPlayersCount(int count)
+    {
+        ReadyPlayersCount = count;
+        OnReadyPlayersCountChanged?.Invoke();
+    }
+    public bool IsPlayerReady(CSteamID player)
+    {
+        if (_readyPlayers.TryGetValue(player, out bool ready))
+            return ready;
+
+        return false;
+    }
+    public void SetPlayerReady(CSteamID player, bool ready)
+    {
+        _readyPlayers[player] = ready;
     }
 }
