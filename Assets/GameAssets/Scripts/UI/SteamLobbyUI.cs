@@ -7,17 +7,21 @@ using UnityEngine.UI;
 public class SteamLobbyUI : MonoBehaviour
 {
     private List<PlayerDataPanelLogic> _allPlayerPanels = new List<PlayerDataPanelLogic>();
-    [SerializeField] private GameObject PlayerPanelPrefab;
+    [SerializeField] private GameObject _playerPanelPrefab;
 
     [Header("EnterToLobbyUI")]
-    [SerializeField] private TMP_InputField EnterLobbyCode;
-    [SerializeField] private TextMeshProUGUI ErrorText;
+    [SerializeField] private TMP_InputField _enterLobbyCode;
+    [SerializeField] private TextMeshProUGUI _errorText;
 
     [Header("LobbyUI")]
     [SerializeField] private TextMeshProUGUI _lobbyNameText;
     [SerializeField] private TextMeshProUGUI _playersCountText;
     [SerializeField] private TMP_InputField _lobbyIDInputField;
-    [SerializeField] private GameObject Content;
+    [SerializeField] private GameObject _content;
+    [SerializeField] private GameObject _readyButton;
+    [SerializeField] private GameObject _unreadyButton;
+    [SerializeField] private TextMeshProUGUI _readyText;
+    [SerializeField] private GameObject _playStartButton;
 
     [Header("CreateLobbyUI")]
     [SerializeField] private TextMeshProUGUI _maxPlayersCountText;
@@ -31,8 +35,12 @@ public class SteamLobbyUI : MonoBehaviour
         SteamLobbyData.Instance.OnPlayerDisconnected += PlayerDiconnected;
         SteamLobbyData.Instance.OnHostIDChanged += HostIDChanged;
         SteamLobbyData.Instance.OnPlayersCountChanged += PlayersCountChanged;
+        SteamLobbyData.Instance.OnPlayersCountChanged += PlayButtonUpdate;
+        SteamLobbyData.Instance.OnReadyPlayersCountChanged += ReadyPlayersCountChanged;
+        SteamLobbyData.Instance.OnReadyPlayersCountChanged += PlayButtonUpdate;
+        SteamLobbyData.Instance.OnHostIDChanged += PlayButtonUpdate;
         SteamLobbyManager.Instance.onLobbyEntered += LobbyEntered;
-        SteamLobbyManager.Instance.OnLobbyExited += OnLobbyExited;
+        SteamLobbyManager.Instance.OnLobbyExited += LobbyExited;
     }
 
 
@@ -40,8 +48,8 @@ public class SteamLobbyUI : MonoBehaviour
 
     private void InstantiatePlayerPanel(PlayerSteamData player)
     {
-        var panelLogic = Instantiate(PlayerPanelPrefab).GetComponent<PlayerDataPanelLogic>();
-        panelLogic.transform.SetParent(Content.transform, false);
+        var panelLogic = Instantiate(_playerPanelPrefab).GetComponent<PlayerDataPanelLogic>();
+        panelLogic.transform.SetParent(_content.transform, false);
         _allPlayerPanels.Add(panelLogic);
         panelLogic.InitializePanel(player);
     }
@@ -89,6 +97,7 @@ public class SteamLobbyUI : MonoBehaviour
     private void PlayersCountChanged()
     {
         _playersCountText.text = $"{SteamLobbyData.Instance.PlayersCount} / {SteamLobbyData.Instance.MaxPlayersCount}";
+        ReadyPlayersCountChanged();
     }
 
     private void LobbyEntered()
@@ -98,7 +107,7 @@ public class SteamLobbyUI : MonoBehaviour
         _playersCountText.text = $"{SteamLobbyData.Instance.PlayersCount} / {SteamLobbyData.Instance.MaxPlayersCount}";
     }
 
-    private void OnLobbyExited()
+    private void LobbyExited()
     {
         _lobbyIDInputField.text = "";
         _lobbyNameText.text = "";
@@ -109,6 +118,51 @@ public class SteamLobbyUI : MonoBehaviour
     public void GameStarted()
     {
         SteamLobbyManager.Instance.StartGame();
+    }
+
+    public void ReadyButtonPressed()
+    {
+        _readyButton.SetActive(false);
+        _unreadyButton.SetActive(true);
+        SteamLobbyManager.Instance.Ready();
+    }
+
+    public void UnreadyButtonPressed()
+    {
+        _unreadyButton.SetActive(false);
+        _readyButton.SetActive(true);
+        SteamLobbyManager.Instance.Unready();
+    }
+
+    public void ReadyPlayersCountChanged()
+    {
+        _readyText.text = $"{SteamLobbyData.Instance.ReadyPlayersCount} / {SteamLobbyData.Instance.PlayersCount}";
+    }
+
+    public void ReadyPanelUpdate(CSteamID playerSteamID, bool ready)
+    {
+        foreach (var panel in _allPlayerPanels)
+        {
+            if(panel.PlayerData.SteamID == playerSteamID)
+            {
+                panel.ReadyTextUpdate(ready);
+                return;
+            }
+        }
+    }
+
+    private void PlayButtonUpdate()
+    {
+        bool isHost =
+            SteamLobbyData.Instance.MySteamData.SteamID ==
+            SteamLobbyData.Instance.HostID;
+
+        bool canStart =
+            SteamLobbyData.Instance.PlayersCount > 1 &&
+            SteamLobbyData.Instance.ReadyPlayersCount ==
+            SteamLobbyData.Instance.PlayersCount;
+
+        _playStartButton.SetActive(isHost && canStart);
     }
 
     #endregion
@@ -125,7 +179,7 @@ public class SteamLobbyUI : MonoBehaviour
         SteamLobbyData.Instance.SetMaxPlayersCount((int)_maxPlayersSlider.value);
         SteamLobbyData.Instance.SetLobbyName(_lobbyNameInputField.text);
 
-        SteamLobbyManager.Instance.CreateGameLobby();
+        SteamLobbyManager.Instance.CreateLobbyRequest();
     }
 
     public void CreateLobbyMaxPlayersCount()
@@ -141,9 +195,9 @@ public class SteamLobbyUI : MonoBehaviour
 
     public void EnterToLobbyWithCode()
     {
-        if (!SteamLobbyManager.Instance.JoinLobbyToID(EnterLobbyCode.text))
+        if (!SteamLobbyManager.Instance.JoinLobbyToID(_enterLobbyCode.text))
         {
-            ErrorText.text = "Неудалось подключиться к лобби, введённый код лобби не является действительным";
+            _errorText.text = "Неудалось подключиться к лобби, введённый код лобби не является действительным";
         }
     }
 

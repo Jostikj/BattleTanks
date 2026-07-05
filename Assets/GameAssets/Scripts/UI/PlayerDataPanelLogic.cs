@@ -8,6 +8,8 @@ public class PlayerDataPanelLogic : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _nameText;
     [SerializeField] private GameObject _kickButton;
     [SerializeField] private GameObject _hostCrown;
+    [SerializeField] private GameObject _readyText;
+    [SerializeField] private GameObject _unreadyText;
     public PlayerSteamData PlayerData { get; private set; }
 
     public void PlayerKick()
@@ -21,9 +23,9 @@ public class PlayerDataPanelLogic : MonoBehaviour
         PlayerData = player;
         _avatarImage.texture = player.Avatar;
         _nameText.text = player.Name;
-
         KickButtonVisible();
         HostCrownVisible();
+        ReadyTextUpdate(SteamLobbyData.Instance.IsPlayerReady(player.SteamID));
     }
 
     public void ResetPanel()
@@ -46,5 +48,11 @@ public class PlayerDataPanelLogic : MonoBehaviour
         if (PlayerData.SteamID == SteamLobbyData.Instance.HostID)
             _hostCrown.SetActive(true);
         else _hostCrown.SetActive(false);
+    }
+
+    public void ReadyTextUpdate(bool ready)
+    {
+        _readyText.SetActive(ready);
+        _unreadyText.SetActive(!ready);
     }
 }
