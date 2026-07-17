@@ -1,20 +1,20 @@
 using Steamworks;
 using UnityEngine;
 
-public class PlayerSteamData
+public class PlayerData
 {
-    private readonly CSteamID _steamID;
+    private readonly CSteamID _ID;
     private readonly Texture2D _avatar;
     private readonly string _name;
 
-    public PlayerSteamData(CSteamID steamID)
+    public PlayerData(CSteamID steamID)
     {
-        _steamID = steamID;
+        _ID = steamID;
         _name = SteamFriends.GetFriendPersonaName(steamID);
-        _avatar = GetSteamAvatar(steamID);
+        _avatar = GetAvatar(steamID);
     }
 
-    public static Texture2D GetSteamAvatar(CSteamID steamID)
+    public static Texture2D GetAvatar(CSteamID steamID)
     {
         int handle = SteamFriends.GetLargeFriendAvatar(steamID);
         if (handle == 0) return null;
@@ -49,7 +49,7 @@ public class PlayerSteamData
         return texture;
     }
 
-    public CSteamID SteamID => _steamID;
+    public CSteamID SteamID => _ID;
     public Texture2D Avatar => _avatar;
     public string Name => _name;
 }

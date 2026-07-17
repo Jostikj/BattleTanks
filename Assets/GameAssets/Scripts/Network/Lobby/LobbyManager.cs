@@ -1,23 +1,15 @@
-using Edgegap;
 using Mirror;
 using Steamworks;
 using System;
 using System.Text;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
-public class SteamLobbyManager : MonoBehaviour
+public class LobbyManager : MonoBehaviour
 {
-    [SerializeField] private string gameSceneName = "Map1";
-
     [Header("Singleton")]
-    public static SteamLobbyManager Instance;
-
-    [Header("Components")]
-    [SerializeField] private SteamLobbyUI SteamLobbyUI;
+    public static LobbyManager Instance;
 
     [Header("Actions")]
-    public Action OnGameStart;
     public Action onLobbyEntered;
     public Action OnLobbyExited;
 
@@ -39,8 +31,6 @@ public class SteamLobbyManager : MonoBehaviour
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
         DontDestroyOnLoad(gameObject);
-        Debug.LogWarning("test");
-
         lobbyCreatedCallback = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
         joinRequestCallback = Callback<GameLobbyJoinRequested_t>.Create(OnJoinRequest);
         lobbyEnteredCallback = Callback<LobbyEnter_t>.Create(OnLobbyEntered);
@@ -52,7 +42,7 @@ public class SteamLobbyManager : MonoBehaviour
     public void CreateLobbyRequest()
     {
         if (_isLobbyCreating) return;
-        SteamMatchmaking.CreateLobby(SteamLobbyData.Instance.LobbyType, SteamLobbyData.Instance.MaxPlayersCount);
+        SteamMatchmaking.CreateLobby(LobbyData.Instance.LobbyType, LobbyData.Instance.MaxPlayersCount);
         _isLobbyCreating = true;
         Debug.Log("Запрос на создание лобби отправлен в Steam...");
     }
@@ -63,16 +53,15 @@ public class SteamLobbyManager : MonoBehaviour
 
         if (callback.m_eResult != EResult.k_EResultOK)
         {
+            LobbyData.Instance.DeleteLobbyData();
             Debug.LogError($"Не удалось создать лобби. Код ошибки: {callback.m_eResult}");
             return;
         }
 
-        SteamLobbyData.Instance.SetLobbyID(new CSteamID(callback.m_ulSteamIDLobby));
-        Debug.Log($"Лобби успешно создано! ID: {SteamLobbyData.Instance.LobbyID}");
+        LobbyData.Instance.SetLobbyID(new CSteamID(callback.m_ulSteamIDLobby));
+        Debug.Log($"Лобби успешно создано! ID: {LobbyData.Instance.LobbyID}");
 
-        SteamMatchmaking.SetLobbyData(SteamLobbyData.Instance.LobbyID, "lobbyName", SteamLobbyData.Instance.LobbyName);
-        SteamMatchmaking.SetLobbyData(SteamLobbyData.Instance.LobbyID, "lobbyMaxPlayersCount", SteamLobbyData.Instance.MaxPlayersCount.ToString());
-        SteamMatchmaking.SetLobbyData(SteamLobbyData.Instance.LobbyID, "readyPlayers", "0");
+        SteamMatchmaking.SetLobbyData(LobbyData.Instance.LobbyID, "lobbyName", LobbyData.Instance.LobbyName);
     }
 
     private void OnJoinRequest(GameLobbyJoinRequested_t callback)
@@ -83,42 +72,44 @@ public class SteamLobbyManager : MonoBehaviour
 
     private void OnLobbyEntered(LobbyEnter_t callback)
     {
-        Debug.Log($"Успешно подключён к лобби: {SteamLobbyData.Instance.LobbyID}");
-        SteamLobbyData.Instance.SetLobbyID(new CSteamID(callback.m_ulSteamIDLobby));
-        SteamLobbyData.Instance.SetHostID(new CSteamID((ulong)SteamMatchmaking.GetLobbyOwner(SteamLobbyData.Instance.LobbyID)));
+        LobbyData.Instance.SetLobbyID((CSteamID)callback.m_ulSteamIDLobby);
+        Debug.Log($"Успешно подключён к лобби: {LobbyData.Instance.LobbyID}");
+        LobbyData.Instance.SetLobbyID(new CSteamID(callback.m_ulSteamIDLobby));
+        LobbyData.Instance.SetHostID(new CSteamID((ulong)SteamMatchmaking.GetLobbyOwner(LobbyData.Instance.LobbyID)));
 
-        SteamMatchmaking.RequestLobbyData(SteamLobbyData.Instance.LobbyID);
+        SteamMatchmaking.RequestLobbyData(LobbyData.Instance.LobbyID);
     }
 
     private void OnLobbyDataUpdate(LobbyDataUpdate_t callback)
     {
-        if (callback.m_ulSteamIDLobby != SteamLobbyData.Instance.LobbyID.m_SteamID)
+        if (callback.m_ulSteamIDLobby != LobbyData.Instance.LobbyID.m_SteamID)
             return;
 
         if (!NetworkServer.active && !_isGameStarting)
             ClientGameStartedCheck();
 
         if (!_isLobbyDataLoaded)
+        {
             LobbyDataLoad();
-
+        }
         UpdateReadyState();
     }
 
     private void LobbyDataLoad()
     {
         Debug.Log("Загрузка данных лобби");
-        _isLobbyDataLoaded = true;
-        SteamLobbyData.Instance.SetMaxPlayersCount(Convert.ToInt32(SteamMatchmaking.GetLobbyData(SteamLobbyData.Instance.LobbyID, "lobbyMaxPlayersCount")));
-        SteamLobbyData.Instance.SetLobbyName(SteamMatchmaking.GetLobbyData(SteamLobbyData.Instance.LobbyID, "lobbyName"));
-        SteamLobbyData.Instance.SetPlayersCount(SteamMatchmaking.GetNumLobbyMembers(SteamLobbyData.Instance.LobbyID));
+        LobbyData.Instance.SetMaxPlayersCount(Convert.ToInt32(SteamMatchmaking.GetLobbyMemberLimit(LobbyData.Instance.LobbyID)));
+        LobbyData.Instance.SetLobbyName(SteamMatchmaking.GetLobbyData(LobbyData.Instance.LobbyID, "lobbyName"));
+        LobbyData.Instance.SetPlayersCount(SteamMatchmaking.GetNumLobbyMembers(LobbyData.Instance.LobbyID));
 
-        for (int i = 0; i < SteamLobbyData.Instance.PlayersCount; i++)
+        for (int i = 0; i < LobbyData.Instance.PlayersCount; i++)
         {
-            SteamLobbyData.Instance.AddPlayer(SteamMatchmaking.GetLobbyMemberByIndex(SteamLobbyData.Instance.LobbyID, i));
+            LobbyData.Instance.AddPlayer(SteamMatchmaking.GetLobbyMemberByIndex(LobbyData.Instance.LobbyID, i));
         }
         UpdateReadyState();
-        NetworkManager.singleton.networkAddress = SteamLobbyData.Instance.HostID.ToString();
+        NetworkManager.singleton.networkAddress = LobbyData.Instance.HostID.ToString();
 
+        _isLobbyDataLoaded = true;
         onLobbyEntered?.Invoke();
     }
 
@@ -126,47 +117,45 @@ public class SteamLobbyManager : MonoBehaviour
     {
         int readyPlayers = 0;
 
-        for (int i = 0; i < SteamLobbyData.Instance.PlayersCount; i++)
+        for (int i = 0; i < LobbyData.Instance.PlayersCount; i++)
         {
             CSteamID player = SteamMatchmaking.GetLobbyMemberByIndex(
-                SteamLobbyData.Instance.LobbyID,
+                LobbyData.Instance.LobbyID,
                 i);
 
             bool ready =
                 SteamMatchmaking.GetLobbyMemberData(
-                    SteamLobbyData.Instance.LobbyID,
+                    LobbyData.Instance.LobbyID,
                     player,
                     "ready") == "1";
 
-            SteamLobbyData.Instance.SetPlayerReady(player, ready);
+            LobbyData.Instance.SetPlayerReady(player, ready);
 
-            SteamLobbyUI.ReadyPanelUpdate(player, ready);
 
             if (ready)
                 readyPlayers++;
         }
 
-        SteamLobbyData.Instance.SetReadyPlayersCount(readyPlayers);
+        LobbyData.Instance.SetReadyPlayersCount(readyPlayers);
     }
 
     public void InviteFriends()
     {
-        if (!SteamLobbyData.Instance.LobbyID.IsValid())
+        if (!LobbyData.Instance.LobbyID.IsValid())
         {
             Debug.LogWarning("Нет активного лобби для приглашения");
             return;
         }
         Debug.Log("Приглашение друзей");
-        SteamFriends.ActivateGameOverlayInviteDialog(SteamLobbyData.Instance.LobbyID);
+        SteamFriends.ActivateGameOverlayInviteDialog(LobbyData.Instance.LobbyID);
     }
 
     private void ClientGameStartedCheck()
     {
-        if (SteamMatchmaking.GetLobbyData(SteamLobbyData.Instance.LobbyID, "game_started") == "1")
+        if (SteamMatchmaking.GetLobbyData(LobbyData.Instance.LobbyID, "game_started") == "1")
         {
             Debug.Log("Игра запущена");
             _isGameStarting = true;
-            SceneManager.LoadScene(gameSceneName);
             NetworkManager.singleton.StartClient();
         }
     }
@@ -174,6 +163,7 @@ public class SteamLobbyManager : MonoBehaviour
     private void OnLobbyChatUpdate(LobbyChatUpdate_t callback)
     {
         ConnectedAndDisconnectedPlayer(callback);
+        UpdateReadyState();
     }
 
     private void ConnectedAndDisconnectedPlayer(LobbyChatUpdate_t callback)
@@ -183,45 +173,43 @@ public class SteamLobbyManager : MonoBehaviour
 
         if ((state & EChatMemberStateChange.k_EChatMemberStateChangeEntered) != 0)
         {
-            SteamLobbyData.Instance.AddPlayer(playerSteamID);
-            SteamLobbyData.Instance.SetPlayersCount(SteamMatchmaking.GetNumLobbyMembers(SteamLobbyData.Instance.LobbyID));
+            LobbyData.Instance.AddPlayer(playerSteamID);
+            LobbyData.Instance.SetPlayersCount(SteamMatchmaking.GetNumLobbyMembers(LobbyData.Instance.LobbyID));
             Debug.Log($"Игрок {playerSteamID} присоединился!");
         }
 
         if ((state & EChatMemberStateChange.k_EChatMemberStateChangeLeft) != 0)
         {
-            SteamLobbyData.Instance.RemovePlayer(playerSteamID);
-            SteamLobbyData.Instance.SetPlayersCount(SteamMatchmaking.GetNumLobbyMembers(SteamLobbyData.Instance.LobbyID));
-            SteamLobbyData.Instance.SetHostID(SteamMatchmaking.GetLobbyOwner(SteamLobbyData.Instance.LobbyID));
+            LobbyData.Instance.RemovePlayer(playerSteamID);
+            LobbyData.Instance.RemovePlayerReady(playerSteamID);
+            LobbyData.Instance.SetPlayersCount(SteamMatchmaking.GetNumLobbyMembers(LobbyData.Instance.LobbyID));
+            LobbyData.Instance.SetHostID(SteamMatchmaking.GetLobbyOwner(LobbyData.Instance.LobbyID));
             Debug.Log($"Игрок {playerSteamID} покинул лобби.");
         }
 
         if ((state & EChatMemberStateChange.k_EChatMemberStateChangeDisconnected) != 0)
         {
-            SteamLobbyData.Instance.RemovePlayer(playerSteamID);
-            SteamLobbyData.Instance.SetPlayersCount(SteamMatchmaking.GetNumLobbyMembers(SteamLobbyData.Instance.LobbyID));
-            SteamLobbyData.Instance.SetHostID(SteamMatchmaking.GetLobbyOwner(SteamLobbyData.Instance.LobbyID));
+            LobbyData.Instance.RemovePlayer(playerSteamID);
+            LobbyData.Instance.RemovePlayerReady(playerSteamID);
+            LobbyData.Instance.SetPlayersCount(SteamMatchmaking.GetNumLobbyMembers(LobbyData.Instance.LobbyID));
+            LobbyData.Instance.SetHostID(SteamMatchmaking.GetLobbyOwner(LobbyData.Instance.LobbyID));
             Debug.Log($"Игрок {playerSteamID} был отключен.");
         }
     }
 
-    public void StartGame()
+    public void StartGame(string mapName)
     {
-        if (SteamLobbyData.Instance.MySteamData.SteamID != SteamLobbyData.Instance.HostID) return;
+        if (LobbyData.Instance.MyData.SteamID != LobbyData.Instance.HostID) return;
         if (_isGameStarting) return;
         Debug.Log("Игра запущена");
         _isGameStarting = true;
 
-        SteamMatchmaking.SetLobbyData(SteamLobbyData.Instance.LobbyID, "game_started", "1");
-
-        SceneManager.LoadScene(gameSceneName);
-        NetworkManager.singleton.StartHost();
-        OnGameStart?.Invoke();
+        SteamMatchmaking.SetLobbyData(LobbyData.Instance.LobbyID, "game_started", "1");
     }
 
     private void OnLobbyChatMsg(LobbyChatMsg_t callback)
     {
-        if (callback.m_ulSteamIDLobby != SteamLobbyData.Instance.LobbyID.m_SteamID) return;
+        if (callback.m_ulSteamIDLobby != LobbyData.Instance.LobbyID.m_SteamID) return;
         Debug.Log("Обновление сообщений в чате лобби");
 
         var senderID = callback.m_ulSteamIDUser;
@@ -239,7 +227,7 @@ public class SteamLobbyManager : MonoBehaviour
 
         string message = Encoding.UTF8.GetString(data, 0, bytesRead);
 
-        if (message.StartsWith("KICK_") && senderID == SteamLobbyData.Instance.HostID.m_SteamID)
+        if (message.StartsWith("KICK_") && senderID == LobbyData.Instance.HostID.m_SteamID)
             KickUpdate(message);
     }
 
@@ -251,7 +239,7 @@ public class SteamLobbyManager : MonoBehaviour
             CSteamID targetID = new CSteamID(kickedID);
             if (targetID == SteamUser.GetSteamID())
             {
-                Debug.Log($"Вас кикнули из лобби: {SteamLobbyData.Instance.LobbyID}");
+                Debug.Log($"Вас кикнули из лобби: {LobbyData.Instance.LobbyID}");
                 OnExitLobby();
             }
         }
@@ -260,17 +248,16 @@ public class SteamLobbyManager : MonoBehaviour
     public void KickPlayer(CSteamID playerSteamID)
     {
         byte[] data = Encoding.UTF8.GetBytes($"KICK_{playerSteamID}");
-        SteamMatchmaking.SendLobbyChatMsg(SteamLobbyData.Instance.LobbyID, data, data.Length);
+        SteamMatchmaking.SendLobbyChatMsg(LobbyData.Instance.LobbyID, data, data.Length);
         Debug.Log($"Кик игрока: {playerSteamID}");
     }
 
     public void OnExitLobby()
     {
-        SteamMatchmaking.LeaveLobby(SteamLobbyData.Instance.LobbyID);
-        SteamLobbyData.Instance.DeleteLobbyData();
+        SteamMatchmaking.LeaveLobby(LobbyData.Instance.LobbyID);
         _isLobbyDataLoaded = false;
-
-        Debug.Log($"Вы вышли из лобби: {SteamLobbyData.Instance.LobbyID}");
+        Debug.Log($"Вы вышли из лобби: {LobbyData.Instance.LobbyID}");
+        LobbyData.Instance.DeleteLobbyData();
         OnLobbyExited?.Invoke();
     }
 
@@ -293,7 +280,7 @@ public class SteamLobbyManager : MonoBehaviour
     public void Ready()
     {
         SteamMatchmaking.SetLobbyMemberData(
-            SteamLobbyData.Instance.LobbyID,
+            LobbyData.Instance.LobbyID,
             "ready",
             "1");
     }
@@ -301,7 +288,7 @@ public class SteamLobbyManager : MonoBehaviour
     public void Unready()
     {
         SteamMatchmaking.SetLobbyMemberData(
-            SteamLobbyData.Instance.LobbyID,
+            LobbyData.Instance.LobbyID,
             "ready",
             "0");
     }

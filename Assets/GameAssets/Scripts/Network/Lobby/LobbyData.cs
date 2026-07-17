@@ -3,26 +3,26 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SteamLobbyData : MonoBehaviour
+public class LobbyData : MonoBehaviour
 {
-    private Dictionary<CSteamID, PlayerSteamData> _players = new Dictionary<CSteamID, PlayerSteamData>();
+    private Dictionary<CSteamID, PlayerData> _players = new Dictionary<CSteamID, PlayerData>();
 
     private Dictionary<CSteamID, bool> _readyPlayers = new Dictionary<CSteamID, bool>();
 
-    public static SteamLobbyData Instance { get; private set; }
+    public static LobbyData Instance { get; private set; }
     public int PlayersCount { get; private set; }
     public int MaxPlayersCount { get; private set; }
     public string LobbyName { get; private set; }
     public CSteamID LobbyID { get; private set; }
     public CSteamID HostID { get; private set; }
     public ELobbyType LobbyType { get; private set; }
-    public PlayerSteamData MySteamData { get; private set; }
+    public PlayerData MyData { get; private set; }
     public int ReadyPlayersCount {  get; private set; }
 
     [Header("Actions")]
-    public Action<PlayerSteamData> OnPlayerConnected;
-    public Action<PlayerSteamData> OnPlayerDisconnected;
-
+    public Action<PlayerData> OnPlayerConnected;
+    public Action<PlayerData> OnPlayerDisconnected;
+    public Action<CSteamID, bool> OnPlayerReadyUpdate;
     public Action OnPlayersCountChanged;
     public Action OnHostIDChanged;
     public Action OnReadyPlayersCountChanged;
@@ -67,7 +67,7 @@ public class SteamLobbyData : MonoBehaviour
             return;
         }
 
-        _players.Add(steamID, new PlayerSteamData(steamID));
+        _players.Add(steamID, new PlayerData(steamID));
         OnPlayerConnected?.Invoke(GetPlayer(steamID));
         Debug.Log($"Игрок {steamID} добавлен в коллекцию _players");
     }
@@ -79,7 +79,7 @@ public class SteamLobbyData : MonoBehaviour
         _players.Remove(steamID);
     }
 
-    public PlayerSteamData GetPlayer(CSteamID steamID)
+    public PlayerData GetPlayer(CSteamID steamID)
     {
         return _players[steamID];
     }
@@ -105,11 +105,6 @@ public class SteamLobbyData : MonoBehaviour
         LobbyID = steamID;
     }
 
-    public void SetMySteamData(PlayerSteamData mySteamData)
-    {
-        MySteamData = mySteamData;
-    }
-
     public void SetPlayersCount(int count)
     {
         PlayersCount = count;
@@ -121,9 +116,9 @@ public class SteamLobbyData : MonoBehaviour
         LobbyType = lobbyType;
     }
 
-    public void InitializeMySteamData(PlayerSteamData player)
+    public void InitializeMySteamData(PlayerData player)
     {
-        MySteamData = player;
+        MyData = player;
     }
 
     public void SetReadyPlayersCount(int count)
@@ -131,15 +126,23 @@ public class SteamLobbyData : MonoBehaviour
         ReadyPlayersCount = count;
         OnReadyPlayersCountChanged?.Invoke();
     }
-    public bool IsPlayerReady(CSteamID player)
+
+    public bool IsPlayerReady(CSteamID playerID)
     {
-        if (_readyPlayers.TryGetValue(player, out bool ready))
+        if (_readyPlayers.TryGetValue(playerID, out bool ready))
             return ready;
 
         return false;
     }
-    public void SetPlayerReady(CSteamID player, bool ready)
+
+    public void SetPlayerReady(CSteamID playerID, bool ready)
     {
-        _readyPlayers[player] = ready;
+        _readyPlayers[playerID] = ready;
+        OnPlayerReadyUpdate?.Invoke(playerID, ready);
+    }
+
+    public void RemovePlayerReady(CSteamID playerID)
+    {
+        _readyPlayers.Remove(playerID);
     }
 }
