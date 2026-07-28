@@ -4,30 +4,44 @@ using UnityEngine.SceneManagement;
 
 public class GameStarter : MonoBehaviour
 {
-    public static GameStarter Instance { get; private set; }
+    [SerializeField] private GameObject GameManager;
 
-    private void Awake()
+    private void Start()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
-        DontDestroyOnLoad(gameObject);
+        OnEnable();
+    }
+
+    private void OnEnable()
+    {
+        if (LobbyManager.Instance != null)
+        {
+            LobbyManager.Instance.OnGameStartedHost += StartGameHost;
+            LobbyManager.Instance.OnGameStartedClient += StartGameClient;
+        }
+    }
+
+    private void OnDisable()
+    {
+        LobbyManager.Instance.OnGameStartedHost -= StartGameHost;
+        LobbyManager.Instance.OnGameStartedClient -= StartGameClient;
     }
 
     public void StartGameHost(string mapName)
     {
-        NetworkManager.singleton.StartHost();
         GlobalStartGame(mapName);
+        NetworkManager.singleton.StartHost();
     }
 
     public void StartGameClient(string mapName)
     {
-        NetworkManager.singleton.StartClient();
         GlobalStartGame(mapName);
+        NetworkManager.singleton.StartClient();
     }
 
     private void GlobalStartGame(string mapName)
     {
         SceneManager.LoadScene(mapName);
         UIManager.Instance.OpenGameUI();
+        GameManager.SetActive(true);
     }
 }

@@ -56,6 +56,8 @@ public class LobbyUI : MonoBehaviour
             LobbyData.Instance.OnPlayerReadyUpdate += ReadyPanelUpdate;
             LobbyManager.Instance.onLobbyEntered += OnLobbyEntered;
             LobbyManager.Instance.OnLobbyExited += OnLobbyExit;
+            LobbyManager.Instance.OnJoinLobbyResults += LobbyJoinResults;
+            LobbyManager.Instance.OnMapChange += OnMapChange;
         }
     }
 
@@ -72,6 +74,8 @@ public class LobbyUI : MonoBehaviour
         LobbyData.Instance.OnPlayerReadyUpdate -= ReadyPanelUpdate;
         LobbyManager.Instance.onLobbyEntered -= OnLobbyEntered;
         LobbyManager.Instance.OnLobbyExited -= OnLobbyExit;
+        LobbyManager.Instance.OnJoinLobbyResults -= LobbyJoinResults;
+        LobbyManager.Instance.OnMapChange -= OnMapChange;
     }
 
     #endregion
@@ -155,12 +159,12 @@ public class LobbyUI : MonoBehaviour
 
     public void GameStarted()
     {
-        LobbyManager.Instance.StartGame(_mapChanger.options[_mapChanger.value].text);
+        LobbyManager.Instance.StartGameHost(_mapChanger.options[_mapChanger.value].text);
     }
 
     public void ExitLobbyButtonPressed()
     {
-        LobbyManager.Instance.OnExitLobby();
+        LobbyManager.Instance.LeaveLobby();
     }
 
     public void ReadyButtonPressed()
@@ -201,7 +205,7 @@ public class LobbyUI : MonoBehaviour
             LobbyData.Instance.HostID;
 
         bool canStart =
-            LobbyData.Instance.PlayersCount > 1 &&
+            LobbyData.Instance.PlayersCount > 0 &&
             LobbyData.Instance.ReadyPlayersCount ==
             LobbyData.Instance.PlayersCount;
 
@@ -210,7 +214,16 @@ public class LobbyUI : MonoBehaviour
 
     public void MapChangerUpdate()
     {
+        LobbyManager.Instance.MapChange(_mapChanger.options[_mapChanger.value].text);
+    }
 
+    private void OnMapChange(string mapName)
+    {
+        for (int i = 0; i < _mapChanger.options.Count; i++)
+        {
+            if (_mapChanger.options[i].text == mapName)
+                _mapChanger.value = i;
+        }
     }
 
     #endregion
@@ -251,17 +264,44 @@ public class LobbyUI : MonoBehaviour
 
     public void EnterToLobbyWithCode()
     {
-        if (!LobbyManager.Instance.JoinLobbyToID(_enterLobbyCode.text))
-        {
-            _errorText.text = "Неудалось подключиться к лобби, введённый код лобби не является действительным";
-            return;
-        }
+        LobbyManager.Instance.JoinLobbyToID(_enterLobbyCode.text);
     }
 
     private void EnterLobbyDataDelete()
     {
         _enterLobbyCode.text = "";
         _errorText.text = "";
+    }
+
+    private void LobbyJoinResults(JoinLobbyResults result)
+    {
+        EnterLobbyDataDelete();
+        switch (result)
+        {
+            case JoinLobbyResults.LobbyDoesNotExist:
+                _errorText.text = "Лобби не существует";
+                break;
+
+            case JoinLobbyResults.LobbyIsFull:
+                _errorText.text = "Лобби заполнено";
+                break;
+
+            case JoinLobbyResults.LobbyIsClosed:
+                _errorText.text = "Лобби закрыто";
+                break;
+
+            case JoinLobbyResults.NoPermission:
+                _errorText.text = "У вас нет доступа к этому лобби";
+                break;
+
+            case JoinLobbyResults.WrongLobbyID:
+                _errorText.text = "Введён неверный код лобби";
+                break;
+
+            case JoinLobbyResults.UnknownError:
+                _errorText.text = "Неизвестная ошибка Steam";
+                break;
+        }
     }
 
     #endregion

@@ -18,6 +18,7 @@ public class UIManager : MonoBehaviour
         if (Instance == null)
             Instance = this;
         else Destroy(gameObject);
+        OpenMenuUI();
     }
 
     public void OpenScreen(IUIWindow screen)
@@ -56,10 +57,4 @@ public class UIManager : MonoBehaviour
     {
         OpenScreen(GameUI);
     }
-}
-
-public interface IUIWindow
-{
-    void Show();
-    void Hide();
 }

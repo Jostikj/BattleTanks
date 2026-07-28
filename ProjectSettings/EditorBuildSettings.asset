@@ -9,11 +9,11 @@ EditorBuildSettings:
     path: Assets/Scenes/menuScene.unity
     guid: d0e4ffa1c5db6ff43b261e1bde5664fd
   - enabled: 1
-    path: Assets/Scenes/Map1.unity
+    path: Assets/Scenes/Desert.unity
     guid: 8124e5870f4fd4c779e7a5f994e84ad1
-  - enabled: 0
-    path: Assets/Scenes/gameScene (local).unity
-    guid: b164caf08ee2a7f4e880d5e85a836dad
+  - enabled: 1
+    path: Assets/Scenes/Forest.unity
+    guid: 0a6f68980fcec964c9abdf6b9c15ca36
   m_configObjects:
     com.unity.adaptivePerformance.basic.provider_settings: {fileID: 11400000, guid: e428a6a640c6aa445a7ceb416b5e9240, type: 2}
     com.unity.adaptiveperformance.loader_settings: {fileID: 11400000, guid: 04327306a60669543a53c95538d7629e, type: 2}

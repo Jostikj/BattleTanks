@@ -12,11 +12,16 @@ public class LobbyManager : MonoBehaviour
     [Header("Actions")]
     public Action onLobbyEntered;
     public Action OnLobbyExited;
+    public Action<JoinLobbyResults> OnJoinLobbyResults;
+    public Action<string> OnGameStartedHost;
+    public Action<string> OnGameStartedClient;
+    public Action<string> OnMapChange;
 
     [Header("Flags")]
     private bool _isLobbyCreating = false;
     private bool _isGameStarting = false;
     private bool _isLobbyDataLoaded = false;
+    private bool _isInLobby;
 
     [Header("Callbacks")]
     private Callback<LobbyCreated_t> lobbyCreatedCallback;
@@ -70,29 +75,71 @@ public class LobbyManager : MonoBehaviour
         SteamMatchmaking.JoinLobby(callback.m_steamIDLobby);
     }
 
+    private JoinLobbyResults ConvertJoinResults(EChatRoomEnterResponse response)
+    {
+        switch (response)
+        {
+            case EChatRoomEnterResponse.k_EChatRoomEnterResponseSuccess:
+                return JoinLobbyResults.Success;
+
+            case EChatRoomEnterResponse.k_EChatRoomEnterResponseDoesntExist:
+                return JoinLobbyResults.LobbyDoesNotExist;
+
+            case EChatRoomEnterResponse.k_EChatRoomEnterResponseFull:
+                return JoinLobbyResults.LobbyIsFull;
+
+            case EChatRoomEnterResponse.k_EChatRoomEnterResponseBanned:
+            case EChatRoomEnterResponse.k_EChatRoomEnterResponseNotAllowed:
+                return JoinLobbyResults.NoPermission;
+
+            default:
+                return JoinLobbyResults.UnknownError;
+        }
+    }
+
+
     private void OnLobbyEntered(LobbyEnter_t callback)
     {
+        OnJoinLobbyResults?.Invoke(ConvertJoinResults((EChatRoomEnterResponse)callback.m_EChatRoomEnterResponse));
+
+        if ((EChatRoomEnterResponse)callback.m_EChatRoomEnterResponse != EChatRoomEnterResponse.k_EChatRoomEnterResponseSuccess)
+        {
+            Debug.LogWarning($"Не удалось войти в лобби. Причина: {(EChatRoomEnterResponse)callback.m_EChatRoomEnterResponse}");
+            return;
+        }
+
         LobbyData.Instance.SetLobbyID((CSteamID)callback.m_ulSteamIDLobby);
         Debug.Log($"Успешно подключён к лобби: {LobbyData.Instance.LobbyID}");
         LobbyData.Instance.SetLobbyID(new CSteamID(callback.m_ulSteamIDLobby));
         LobbyData.Instance.SetHostID(new CSteamID((ulong)SteamMatchmaking.GetLobbyOwner(LobbyData.Instance.LobbyID)));
 
         SteamMatchmaking.RequestLobbyData(LobbyData.Instance.LobbyID);
+        _isInLobby = true;
     }
 
     private void OnLobbyDataUpdate(LobbyDataUpdate_t callback)
     {
+        if (!_isInLobby)
+            return;
+
         if (callback.m_ulSteamIDLobby != LobbyData.Instance.LobbyID.m_SteamID)
             return;
 
         if (!NetworkServer.active && !_isGameStarting)
-            ClientGameStartedCheck();
+            ClientGameStarted();
 
         if (!_isLobbyDataLoaded)
         {
             LobbyDataLoad();
         }
         UpdateReadyState();
+
+        MapUpdate();
+    }
+
+    private void MapUpdate()
+    {
+        OnMapChange?.Invoke(SteamMatchmaking.GetLobbyData(LobbyData.Instance.LobbyID, "mapName"));
     }
 
     private void LobbyDataLoad()
@@ -150,18 +197,24 @@ public class LobbyManager : MonoBehaviour
         SteamFriends.ActivateGameOverlayInviteDialog(LobbyData.Instance.LobbyID);
     }
 
-    private void ClientGameStartedCheck()
+    private void ClientGameStarted()
     {
-        if (SteamMatchmaking.GetLobbyData(LobbyData.Instance.LobbyID, "game_started") == "1")
+        if (SteamMatchmaking.GetLobbyData(LobbyData.Instance.LobbyID, "gameStarted") == "1")
         {
-            Debug.Log("Игра запущена");
             _isGameStarting = true;
-            NetworkManager.singleton.StartClient();
+            OnGameStartedClient?.Invoke(SteamMatchmaking.GetLobbyData(LobbyData.Instance.LobbyID, "mapName"));
+            Debug.Log("Игра запущена");
         }
     }
 
     private void OnLobbyChatUpdate(LobbyChatUpdate_t callback)
     {
+        if (!_isInLobby)
+            return;
+
+        if (callback.m_ulSteamIDLobby != LobbyData.Instance.LobbyID.m_SteamID)
+            return;
+
         ConnectedAndDisconnectedPlayer(callback);
         UpdateReadyState();
     }
@@ -197,14 +250,19 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
-    public void StartGame(string mapName)
+    public void StartGameHost(string mapName)
     {
-        if (LobbyData.Instance.MyData.SteamID != LobbyData.Instance.HostID) return;
-        if (_isGameStarting) return;
-        Debug.Log("Игра запущена");
+        if (LobbyData.Instance.MyData.SteamID != LobbyData.Instance.HostID || _isGameStarting) return;
         _isGameStarting = true;
+        MapChange(mapName);
+        SteamMatchmaking.SetLobbyData(LobbyData.Instance.LobbyID, "gameStarted", "1");
+        OnGameStartedHost?.Invoke(mapName);
+        Debug.Log("Игра запущена");
+    }
 
-        SteamMatchmaking.SetLobbyData(LobbyData.Instance.LobbyID, "game_started", "1");
+    public void MapChange(string mapName)
+    {
+        SteamMatchmaking.SetLobbyData(LobbyData.Instance.LobbyID, "mapName", mapName);
     }
 
     private void OnLobbyChatMsg(LobbyChatMsg_t callback)
@@ -240,7 +298,7 @@ public class LobbyManager : MonoBehaviour
             if (targetID == SteamUser.GetSteamID())
             {
                 Debug.Log($"Вас кикнули из лобби: {LobbyData.Instance.LobbyID}");
-                OnExitLobby();
+                LeaveLobby();
             }
         }
     }
@@ -252,29 +310,28 @@ public class LobbyManager : MonoBehaviour
         Debug.Log($"Кик игрока: {playerSteamID}");
     }
 
-    public void OnExitLobby()
+    public void LeaveLobby()
     {
+        if (LobbyData.Instance.PlayersCount == 1)
+            SteamMatchmaking.SetLobbyJoinable(LobbyData.Instance.LobbyID, false);
         SteamMatchmaking.LeaveLobby(LobbyData.Instance.LobbyID);
+
+        _isInLobby = false;
         _isLobbyDataLoaded = false;
         Debug.Log($"Вы вышли из лобби: {LobbyData.Instance.LobbyID}");
         LobbyData.Instance.DeleteLobbyData();
         OnLobbyExited?.Invoke();
     }
 
-    public bool JoinLobbyToID(string lobbySteamID)
+    public void JoinLobbyToID(string lobbySteamID)
     {
         if (ulong.TryParse(lobbySteamID, out ulong lobbyIDNumber) && lobbyIDNumber != 0)
         {
             CSteamID lobbyID = new CSteamID(lobbyIDNumber);
             SteamMatchmaking.JoinLobby(lobbyID);
             Debug.Log($"Пытаемся присоединиться к лобби: {lobbyID}");
-            return true;
         }
-        else
-        {
-            Debug.Log("Неверный формат ID лобби! ID должен состоять только из цифр.");
-            return false;
-        }
+        else Debug.Log("Неверный формат ID лобби! ID должен состоять только из цифр.");
     }
 
     public void Ready()
