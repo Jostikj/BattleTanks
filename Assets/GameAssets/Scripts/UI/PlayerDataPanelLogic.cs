@@ -10,22 +10,22 @@ public class PlayerDataPanelLogic : MonoBehaviour
     [SerializeField] private GameObject _hostCrown;
     [SerializeField] private GameObject _readyText;
     [SerializeField] private GameObject _unreadyText;
-    public PlayerSteamData PlayerData { get; private set; }
+    public PlayerData PlayerData { get; private set; }
 
     public void PlayerKick()
     {
-        if (SteamLobbyData.Instance.HostID != SteamLobbyData.Instance.MySteamData.SteamID) return;
-        SteamLobbyManager.Instance.KickPlayer(PlayerData.SteamID);
+        if (LobbyData.Instance.HostID != LobbyData.Instance.MyData.SteamID) return;
+        LobbyManager.Instance.KickPlayer(PlayerData.SteamID);
     }
 
-    public void InitializePanel(PlayerSteamData player)
+    public void InitializePanel(PlayerData player)
     {
         PlayerData = player;
         _avatarImage.texture = player.Avatar;
         _nameText.text = player.Name;
         KickButtonVisible();
         HostCrownVisible();
-        ReadyTextUpdate(SteamLobbyData.Instance.IsPlayerReady(player.SteamID));
+        ReadyTextUpdate(LobbyData.Instance.IsPlayerReady(player.SteamID));
     }
 
     public void ResetPanel()
@@ -36,16 +36,16 @@ public class PlayerDataPanelLogic : MonoBehaviour
 
     private void KickButtonVisible()
     {
-        if (SteamLobbyData.Instance.HostID == SteamLobbyData.Instance.MySteamData.SteamID)
+        if (LobbyData.Instance.HostID == LobbyData.Instance.MyData.SteamID)
             _kickButton.SetActive(true);
         else _kickButton.SetActive(false);
 
-        if (PlayerData.SteamID == SteamLobbyData.Instance.HostID) _kickButton.SetActive(false);
+        if (PlayerData.SteamID == LobbyData.Instance.HostID) _kickButton.SetActive(false);
     }
 
     private void HostCrownVisible()
     {
-        if (PlayerData.SteamID == SteamLobbyData.Instance.HostID)
+        if (PlayerData.SteamID == LobbyData.Instance.HostID)
             _hostCrown.SetActive(true);
         else _hostCrown.SetActive(false);
     }

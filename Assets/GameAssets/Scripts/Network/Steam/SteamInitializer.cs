@@ -8,10 +8,10 @@ public class SteamInitializer : MonoBehaviour
     {
         if (SteamAPI.Init())
         {
-            SteamLobbyData.Instance.InitializeMySteamData(new PlayerSteamData(SteamUser.GetSteamID()));
+            LobbyData.Instance.InitializeMySteamData(new PlayerData(SteamUser.GetSteamID()));
 
             Debug.Log("Steam успешно инициализирован!");
-            Debug.Log($"Игрок залогинен в Steam как: {SteamLobbyData.Instance.MySteamData.Name}");
+            Debug.Log($"Игрок залогинен в Steam как: {LobbyData.Instance.MyData.Name}");
             SteamInitialized = true;
         }
         else
