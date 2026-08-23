@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using Steamworks;
 using UnityEngine.UI;
+using System;
 
 public class LobbyUI : MonoBehaviour
 {
@@ -25,6 +27,8 @@ public class LobbyUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _readyText;
     [SerializeField] private GameObject _playStartButton;
     [SerializeField] private TMP_Dropdown _mapChanger;
+    [SerializeField] private GameObject _copyIDButton;
+    [SerializeField] private TextMeshProUGUI _notificationOfCopyingText;
 
     [Header("CreateLobbyUI")]
     [SerializeField] private TextMeshProUGUI _maxPlayersCountText;
@@ -155,6 +159,27 @@ public class LobbyUI : MonoBehaviour
         _readyButton.SetActive(true);
         _unreadyButton.SetActive(false);
         DeleteAllPlayerPanels();
+    }
+
+
+    public void OnCopyLobbyIDButtonClick()
+    {
+        GUIUtility.systemCopyBuffer = Convert.ToString(LobbyData.Instance.LobbyID);
+        StartCoroutine(ShowNotificationOfCopyingText());
+    }
+    public IEnumerator ShowNotificationOfCopyingText()
+    {
+        for (int i = 0; i < 100; i++)
+        {
+            _notificationOfCopyingText.alpha += 0.01f;
+            yield return new WaitForSeconds(0.005f);
+        }
+        yield return new WaitForSeconds(0.5f);
+        for (int i = 0; i < 100; i++)
+        {
+            _notificationOfCopyingText.alpha -= 0.01f;
+            yield return new WaitForSeconds(0.005f);
+        }
     }
 
     public void GameStarted()
